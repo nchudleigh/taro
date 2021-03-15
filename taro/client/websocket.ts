@@ -1,9 +1,10 @@
-type EventHandler = (event: MessageEvent) => void;
+export type RawClientMessageHandler = (rawMessageEvent: MessageEvent) => void;
 
-export function openSocket(eventHandler: EventHandler) {
+export function openSocket(rawClientMessageHandler: RawClientMessageHandler) {
   const webSocket = new WebSocket(`ws://${document.location.host}`);
-  webSocket.onmessage = eventHandler;
+  webSocket.onmessage = rawClientMessageHandler;
   webSocket.onopen = function sendPing() {
     webSocket.send("Ping");
   };
+  return webSocket;
 }
