@@ -14,7 +14,6 @@ function messageHandler(rawMessage: MessageEvent) {
 
 // Link up create room button
 const createRoomButton = document.getElementById("create_room_button");
-console.log(createRoomButton);
 if (!isNull(createRoomButton)) {
   createRoomButton.onclick = function () {
     const createRoomMessage = makeCreateRoomMessage();

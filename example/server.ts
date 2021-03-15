@@ -1,27 +1,16 @@
-import { isString } from "@taro/utils.ts";
-import { createServer } from "@taro/server/server.ts";
 import { Message } from "@taro/domain/domain.ts";
+import { createServer, sendMessage, WebSocket } from "@taro/server/server.ts";
 import { isCreateRoomMessage } from "./domain.ts";
 
 const server = createServer({
   port: 8080,
   assetDirectory: `${Deno.cwd()}/example/assets`,
-}, rawMessageHandler);
+}, handleMessage);
 
-// TODO: Should this be part of taro lib?
-function parseMessage(rawMessage: string): object | null {
-  try {
-    return JSON.parse(rawMessage);
-  } catch (e) {
-    console.error("Unable to parse JSON from message.", rawMessage);
-    return null;
-  }
-}
-
-function rawMessageHandler(rawMessage: string) {
-  const message = parseMessage(rawMessage);
-
+// TODO: Build a router abstraction around this
+function handleMessage(webSocket: WebSocket, message: Message) {
   if (isCreateRoomMessage(message)) {
-    console.log("Create a room!", message);
+    // call create room
+    sendMessage(webSocket, { kind: "created_room" });
   }
 }
