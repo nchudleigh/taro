@@ -14,17 +14,21 @@ function isOfKind(messageKind) {
         return message?.kind === messageKind;
     };
 }
+function createMessageFactory(messageKind) {
+    return function(data) {
+        return {
+            kind: messageKind,
+            ...data
+        };
+    };
+}
 var MessageKind;
 (function(MessageKind1) {
     MessageKind1["CreateRoom"] = "create_room";
     MessageKind1["JoinRoom"] = "join_room";
 })(MessageKind || (MessageKind = {
 }));
-function makeCreateRoomMessage() {
-    return {
-        kind: MessageKind.CreateRoom
-    };
-}
+const makeCreateRoomMessage = createMessageFactory(MessageKind.CreateRoom);
 const isJoinRoomMessage = isOfKind(MessageKind.JoinRoom);
 const webSocket = openSocket(messageHandler);
 function messageHandler(rawMessage) {
@@ -34,7 +38,6 @@ function messageHandler(rawMessage) {
     }
 }
 const createRoomButton = document.getElementById("create_room_button");
-console.log(createRoomButton);
 if (!isNull(createRoomButton)) {
     createRoomButton.onclick = function() {
         const createRoomMessage = makeCreateRoomMessage();
