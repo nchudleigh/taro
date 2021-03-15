@@ -1,13 +1,19 @@
-import { isString } from "@taro/utils.ts";
+import { isNull, isString } from "@taro/utils.ts";
 import {
   acceptWebSocket,
   isWebSocketCloseEvent,
-  isWebSocketPingEvent,
   WebSocket,
 } from "std/ws/mod.ts";
 import { ServerRequest } from "std/http/server.ts";
+import { unpackMessage } from "@taro/server/message.ts";
+import { isMessage, Message } from "@taro/domain/domain.ts";
 
-export type RawServerMessageHandler = (rawMessageEvent: string) => void;
+export type { WebSocket };
+
+export type ServerMessageHandler = (
+  webSocket: WebSocket,
+  message: Message,
+) => void;
 
 const socketConnections: WebSocket[] = [];
 
@@ -21,7 +27,7 @@ export function isWebSocketRequest(req: ServerRequest): boolean {
 
 export async function handleSocket(
   req: ServerRequest,
-  rawServerMessageHandler: RawServerMessageHandler,
+  serverMessageHandler: ServerMessageHandler,
 ) {
   const { conn, r: bufReader, w: bufWriter, headers } = req;
   const webSocket = await acceptWebSocket({
@@ -30,18 +36,18 @@ export async function handleSocket(
     bufWriter,
     headers,
   });
-  registerNewConnection(conn, webSocket, rawServerMessageHandler);
+  registerNewConnection(conn, webSocket, serverMessageHandler);
 }
 
 function registerNewConnection(
   conn: Deno.Conn,
   webSocket: WebSocket,
-  rawServerMessageHandler: RawServerMessageHandler,
+  serverMessageHandler: ServerMessageHandler,
 ) {
   socketConnections.push(webSocket);
   console.log(webSocket);
   try {
-    listenForEvents(webSocket, rawServerMessageHandler);
+    listenForEvents(webSocket, serverMessageHandler);
   } catch (e) {
     if (!webSocket.isClosed) {
       webSocket.close(1000);
@@ -51,13 +57,14 @@ function registerNewConnection(
 
 async function listenForEvents(
   webSocket: WebSocket,
-  rawServerMessageHandler: RawServerMessageHandler,
+  messageHandler: ServerMessageHandler,
 ) {
   for await (const event of webSocket) {
     if (isString(event)) {
-      rawServerMessageHandler(event);
+      const message = unpackMessage(event);
+      if (isMessage(message)) messageHandler(webSocket, message);
     } else if (event instanceof Uint8Array) {
-      console.log("Binary websocket events are not yet supported.", event);
+      console.log("Binary websocket events are not supported.", event);
     } else if (isWebSocketCloseEvent(event)) {
       console.log("ws:Close", event);
     } else {
