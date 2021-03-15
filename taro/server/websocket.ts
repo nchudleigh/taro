@@ -5,8 +5,7 @@ import {
   WebSocket,
 } from "std/ws/mod.ts";
 import { ServerRequest } from "std/http/server.ts";
-import { unpackMessage } from "@taro/server/message.ts";
-import { isMessage, Message } from "@taro/domain/domain.ts";
+import { isMessage, Message, unpackMessage } from "@taro/domain/domain.ts";
 
 export type { WebSocket };
 
@@ -63,6 +62,7 @@ async function listenForEvents(
     if (isString(event)) {
       const message = unpackMessage(event);
       if (isMessage(message)) messageHandler(webSocket, message);
+      else console.error("Message not recognized.", message);
     } else if (event instanceof Uint8Array) {
       console.log("Binary websocket events are not supported.", event);
     } else if (isWebSocketCloseEvent(event)) {

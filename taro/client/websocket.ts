@@ -1,10 +1,14 @@
-export type RawClientMessageHandler = (rawMessageEvent: MessageEvent) => void;
+import { isMessage, Message, unpackMessage } from "@taro/domain/domain.ts";
 
-export function openSocket(rawClientMessageHandler: RawClientMessageHandler) {
+type ClientMessageHandler = (message: Message) => void;
+
+export function openSocket(clientMessageHandler: ClientMessageHandler) {
   const webSocket = new WebSocket(`ws://${document.location.host}`);
-  webSocket.onmessage = rawClientMessageHandler;
-  webSocket.onopen = function sendPing() {
-    webSocket.send("Ping");
+  webSocket.onmessage = (event) => {
+    const message = unpackMessage(event.data);
+    if (isMessage(message)) clientMessageHandler(message);
+    else console.error("Message not recognized.", message);
   };
+  // webSocket.onopen
   return webSocket;
 }

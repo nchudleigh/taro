@@ -9,7 +9,7 @@ import {
 } from "@taro/server/websocket.ts";
 
 import { Message } from "@taro/domain/domain.ts";
-import { packMessage } from "@taro/server/message.ts";
+import { packMessage } from "@taro/domain/domain.ts";
 import { isNull } from "@taro/utils.ts";
 
 type serverOptions = {
