@@ -1,12 +1,13 @@
 import { isNull } from "@taro/utils.ts";
 import { openSocket } from "@taro/client/client.ts";
+import { Message } from "@taro/domain/domain.ts";
 import { isJoinRoomMessage, makeCreateRoomMessage } from "./domain.ts";
 
 const webSocket = openSocket(messageHandler);
 
-function messageHandler(rawMessage: MessageEvent) {
-  // TODO: should this be a taro lib method?
-  const message = JSON.parse(rawMessage.data);
+function messageHandler(message: Message) {
+  console.log(message);
+
   if (isJoinRoomMessage(message)) {
     console.log("User joined", message);
   }
@@ -21,8 +22,3 @@ if (!isNull(createRoomButton)) {
   };
   console.log(createRoomButton);
 }
-
-// function joinRoomHandler() {
-//   const joinRoomMessage = makeJoinRoomMessage();
-//   webSocket.send(JSON.stringify(joinRoomMessage));
-// }

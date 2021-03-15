@@ -11,6 +11,7 @@ const server = createServer({
 function handleMessage(webSocket: WebSocket, message: Message) {
   if (isCreateRoomMessage(message)) {
     // call create room
+    console.log(message);
     sendMessage(webSocket, { kind: "created_room" });
   }
 }
