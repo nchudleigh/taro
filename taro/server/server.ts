@@ -1,39 +1,69 @@
 import { serve } from "std/http/server.ts";
+import { ServerRequest } from "std/http/server.ts";
+import {
+  acceptWebSocket,
+  isWebSocketCloseEvent,
+  WebSocket,
+} from "std/ws/mod.ts";
 
 import { handleHTTP } from "@taro/server/fileserver.ts";
+import { isNull, isString } from "@taro/utils.ts";
+
 import {
-  handleSocket,
-  isWebSocketRequest,
-  ServerMessageHandler,
-  WebSocket,
-} from "@taro/server/websocket.ts";
+  isMessage,
+  Message,
+  packMessage,
+  unpackMessage,
+} from "@taro/domain/domain.ts";
 
-import { Message } from "@taro/domain/domain.ts";
-import { packMessage } from "@taro/domain/domain.ts";
-import { isNull } from "@taro/utils.ts";
-
-type serverOptions = {
+interface ServerOptions {
   assetDirectory: string;
   port: number;
-};
+}
 
 export type { WebSocket };
 
-export async function createServer(
-  options: serverOptions,
+export interface Server {
+  options: ServerOptions;
+  connections: WebSocket[];
+}
+
+export type ServerMessageHandler = (
+  webSocket: WebSocket,
+  message: Message,
+) => void;
+
+export function createServer(
+  options: ServerOptions,
+): Server {
+  return {
+    options,
+    connections: [],
+  };
+}
+
+export async function startServer(
+  server: Server,
   serverMessageHandler: ServerMessageHandler,
 ) {
-  console.log(`🍠 Taro Server listening at :${options.port}`);
-  for await (const req of serve(`:${options.port}`)) {
+  console.log(`🍠 Taro Server listening at :${server.options.port}`);
+  for await (const req of serve(`:${server.options.port}`)) {
     // If the request is requesting to upgrade to websocket
     // handle the connection request
     if (isWebSocketRequest(req)) {
-      handleSocket(req, serverMessageHandler);
+      handleSocket(server, req, serverMessageHandler);
     } // Otherwise, serve static files
     else {
-      handleHTTP(req, options.assetDirectory);
+      handleHTTP(req, server.options.assetDirectory);
     }
   }
+}
+
+export function broadcastMessage(
+  server: Server,
+  message: Message,
+) {
+  server.connections.forEach((webSocket) => sendMessage(webSocket, message));
 }
 
 export function sendMessage(
@@ -43,4 +73,60 @@ export function sendMessage(
   const packagedMessage = packMessage(message);
   if (isNull(packagedMessage)) return;
   webSocket.send(packagedMessage);
+}
+
+export function isWebSocketRequest(req: ServerRequest): boolean {
+  if (req.headers.get("upgrade") == "websocket") {
+    return true;
+  }
+  return false;
+}
+
+export async function handleSocket(
+  server: Server,
+  req: ServerRequest,
+  serverMessageHandler: ServerMessageHandler,
+) {
+  const { conn, r: bufReader, w: bufWriter, headers } = req;
+  const webSocket = await acceptWebSocket({
+    conn,
+    bufReader,
+    bufWriter,
+    headers,
+  });
+  registerNewConnection(server, webSocket, serverMessageHandler);
+}
+
+function registerNewConnection(
+  server: Server,
+  webSocket: WebSocket,
+  serverMessageHandler: ServerMessageHandler,
+) {
+  server.connections.push(webSocket);
+  try {
+    listenForEvents(webSocket, serverMessageHandler);
+  } catch (e) {
+    if (!webSocket.isClosed) {
+      webSocket.close(1000);
+    }
+  }
+}
+
+async function listenForEvents(
+  webSocket: WebSocket,
+  messageHandler: ServerMessageHandler,
+) {
+  for await (const event of webSocket) {
+    if (isString(event)) {
+      const message = unpackMessage(event);
+      if (isMessage(message)) messageHandler(webSocket, message);
+      else console.error("Message not recognized.", message);
+    } else if (event instanceof Uint8Array) {
+      console.log("Binary websocket events are not supported.", event);
+    } else if (isWebSocketCloseEvent(event)) {
+      console.log("ws:Close", event);
+    } else {
+      console.error("Unhandled websocket event type.", event);
+    }
+  }
 }
