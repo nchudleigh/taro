@@ -1,6 +1,5 @@
-# taro
+# 🍠 Taro 
 
-🍠 Taro 
 A websocket framework.
 
 ## Getting started
