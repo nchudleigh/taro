@@ -1,6 +1,7 @@
 # taro
 
-🍠 Taro Game Framework
+🍠 Taro 
+A websocket framework.
 
 ## Getting started
 
