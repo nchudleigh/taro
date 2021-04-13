@@ -2,6 +2,8 @@
 
 A websocket framework.
 
+🦕 written in Deno.
+
 ## Getting started
 
 ### Fire up a server
